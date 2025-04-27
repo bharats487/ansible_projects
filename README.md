@@ -14,6 +14,10 @@ Each subdirectory contains its own playbooks, roles, and documentation.
 ## Usage
 Refer to the README in each subproject for details and instructions.
 
+## Keywords
+
+ansible, automation, windows, windows-server, iis, active-directory, gpo, winrm, devops, infrastructure-as-code, playbooks, enterprise, configuration-management
+
 ---
 
 Feel free to contribute or raise issues!
