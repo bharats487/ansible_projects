@@ -16,7 +16,21 @@ Refer to the README in each subproject for details and instructions.
 
 ## Keywords
 
-ansible, automation, windows, windows-server, iis, active-directory, gpo, winrm, devops, infrastructure-as-code, playbooks, enterprise, configuration-management
+<p>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">ansible</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">automation</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">windows</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">windows-server</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">iis</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">active-directory</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">gpo</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">winrm</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">devops</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">infrastructure-as-code</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">playbooks</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">enterprise</span>
+  <span style="display:inline-block;background:#e6f2fb;color:#0366d6;border-radius:16px;padding:4px 12px;margin:2px 2px;font-size:14px;font-family:sans-serif;">configuration-management</span>
+</p>
 
 ---
 
