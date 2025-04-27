@@ -1,0 +1,58 @@
+---
+- name: Provision Infrastructure with Terraform
+  hosts: localhost
+  vars:
+    aws_region: us-east-1
+    azure_region: eastus
+    gcp_region: us-central1
+    terraform_dir: ./terraform
+  tasks:
+    - name: Initialize Terraform
+      community.general.terraform:
+        project_path: "{{ terraform_dir }}"
+        state: present
+        force_init: true
+    - name: Apply Terraform
+      community.general.terraform:
+        project_path: "{{ terraform_dir }}"
+        state: present
+        force_init: false
+        variables:
+          aws_region: "{{ aws_region }}"
+          azure_region: "{{ azure_region }}"
+          gcp_region: "{{ gcp_region }}"
+      register: tf_apply
+    - name: Display Terraform outputs
+      debug:
+        var: tf_apply.outputs
+
+- name: Configure provisioned cloud hosts
+  hosts: tag_app_server
+  become: yes
+  vars:
+    monitoring_tool: prometheus
+    logging_tool: fluentd
+    app_repo: https://github.com/example/cloud-app.git
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+  roles:
+    - app
+    - monitoring
+    - logging
+  tasks:
+    - name: Deploy application code
+      git:
+        repo: "{{ app_repo }}"
+        dest: /opt/app
+    - name: Ensure monitoring is running
+      service:
+        name: prometheus
+        state: started
+      when: monitoring_tool == 'prometheus'
+    - name: Ensure logging is running
+      service:
+        name: fluentd
+        state: started
+      when: logging_tool == 'fluentd'

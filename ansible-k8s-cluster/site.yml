@@ -1,0 +1,85 @@
+---
+- name: Prepare Nodes
+  hosts: all
+  become: yes
+  vars:
+    k8s_version: "1.27.0"
+    cni_plugin: calico
+    docker_version: "20.10"
+    cluster_token: "{{ vault_cluster_token }}"
+    etcd_endpoints:
+      - https://10.0.0.1:2379
+      - https://10.0.0.2:2379
+      - https://10.0.0.3:2379
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+    - name: Set hostname
+      hostname:
+        name: "{{ inventory_hostname }}"
+  roles:
+    - docker
+    - etcd
+    - cni
+
+- name: Kubernetes Master Setup
+  hosts: k8s_masters
+  become: yes
+  vars:
+    kube_apiserver_advertise_address: "{{ ansible_host }}"
+    kubeadm_token: "{{ cluster_token }}"
+  roles:
+    - k8s-master
+    - helm
+  post_tasks:
+    - name: Deploy CoreDNS
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: coredns
+            namespace: kube-system
+          spec:
+            selector:
+              k8s-app: kube-dns
+            ports:
+              - protocol: UDP
+                port: 53
+                targetPort: 53
+
+- name: Kubernetes Worker Setup
+  hosts: k8s_workers
+  become: yes
+  vars:
+    kubeadm_token: "{{ cluster_token }}"
+    master_ip: "{{ groups['k8s_masters'][0] }}"
+  roles:
+    - k8s-worker
+  tasks:
+    - name: Join node to cluster
+      shell: kubeadm join {{ master_ip }}:6443 --token {{ kubeadm_token }} --discovery-token-unsafe-skip-ca-verification
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+
+- name: Monitoring and Add-ons
+  hosts: k8s_masters
+  become: yes
+  roles:
+    - monitoring
+    - ingress
+  tasks:
+    - name: Deploy Prometheus
+      kubernetes.core.helm:
+        name: prometheus
+        chart_ref: prometheus-community/prometheus
+        release_namespace: monitoring
+        create_namespace: true
+    - name: Deploy NGINX Ingress Controller
+      kubernetes.core.helm:
+        name: nginx-ingress
+        chart_ref: ingress-nginx/ingress-nginx
+        release_namespace: ingress-nginx
+        create_namespace: true

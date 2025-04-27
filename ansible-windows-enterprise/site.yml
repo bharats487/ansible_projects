@@ -1,0 +1,88 @@
+---
+- name: Prepare Windows hosts
+  hosts: windows
+  gather_facts: yes
+  vars:
+    domain_name: corp.example.com
+    admin_user: Administrator
+    admin_password: "{{ vault_admin_password }}"
+    users:
+      - name: alice
+        password: "{{ vault_alice_password }}"
+        groups: ["Domain Users", "Remote Desktop Users"]
+      - name: bob
+        password: "{{ vault_bob_password }}"
+        groups: ["Domain Users"]
+    iis_sites:
+      - name: CorpSite
+        port: 80
+        physical_path: C:\inetpub\corp
+        app_pool: CorpAppPool
+      - name: Intranet
+        port: 8080
+        physical_path: C:\inetpub\intranet
+        app_pool: IntranetPool
+    gpo_settings:
+      password_policy:
+        min_length: 12
+        complexity: true
+      firewall_rules:
+        - name: Allow_HTTP
+          localport: 80
+          action: allow
+        - name: Allow_RDP
+          localport: 3389
+          action: allow
+  pre_tasks:
+    - name: Ensure WinRM is enabled
+      import_role:
+        name: winrm
+  roles:
+    - role: domain
+      tags: ["domain"]
+    - role: users
+      tags: ["users"]
+    - role: iis
+      tags: ["iis"]
+    - role: gpo
+      tags: ["gpo"]
+  post_tasks:
+    - name: Install Windows Updates
+      win_updates:
+        category_names:
+          - SecurityUpdates
+          - CriticalUpdates
+        reboot: yes
+      register: update_result
+    - name: Wait for reboot if required
+      win_reboot:
+      when: update_result.reboot_required
+
+- name: Application Deployment
+  hosts: windows
+  gather_facts: no
+  vars:
+    app_packages:
+      - url: https://example.com/installer1.msi
+        path: C:\temp\installer1.msi
+      - url: https://example.com/installer2.msi
+        path: C:\temp\installer2.msi
+  tasks:
+    - name: Download application packages
+      win_get_url:
+        url: "{{ item.url }}"
+        dest: "{{ item.path }}"
+      loop: "{{ app_packages }}"
+    - name: Install MSI packages
+      win_package:
+        path: "{{ item.path }}"
+        state: present
+      loop: "{{ app_packages }}"
+      notify:
+        - Restart IIS
+
+handlers:
+  - name: Restart IIS
+    win_service:
+      name: W3SVC
+      state: restarted

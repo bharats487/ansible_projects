@@ -1,0 +1,88 @@
+---
+- name: Provision Web Servers
+  hosts: webservers
+  become: yes
+  vars:
+    php_version: "8.1"
+    mysql_root_password: "{{ vault_mysql_root_password }}"
+    db_name: app_db
+    db_user: appuser
+    db_password: "{{ vault_db_password }}"
+    vhosts:
+      - servername: www.example.com
+        documentroot: /var/www/example
+        ssl: true
+      - servername: api.example.com
+        documentroot: /var/www/api
+        ssl: false
+    letsencrypt_email: admin@example.com
+    wordpress_sites:
+      - name: blog
+        url: blog.example.com
+        db: wp_blog
+      - name: shop
+        url: shop.example.com
+        db: wp_shop
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+  roles:
+    - role: apache
+      tags: ["web", "apache"]
+    - role: php
+      tags: ["web", "php"]
+    - role: mysql
+      tags: ["db", "mysql"]
+    - role: ssl
+      tags: ["ssl"]
+    - role: wordpress
+      tags: ["wordpress"]
+  post_tasks:
+    - name: Ensure Apache is restarted
+      service:
+        name: apache2
+        state: restarted
+      when: ansible_os_family == "Debian"
+    - name: Ensure Nginx is restarted
+      service:
+        name: nginx
+        state: restarted
+      when: ansible_os_family == "RedHat"
+
+- name: Backup and Security
+  hosts: dbservers
+  become: yes
+  vars:
+    backup_dir: /var/backups/mysql
+    retention_days: 7
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0750'
+    - name: Backup all databases
+      mysql_db:
+        state: dump
+        name: all
+        target: "{{ backup_dir }}/all-{{ ansible_date_time.date }}.sql"
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      notify:
+        - Cleanup old backups
+    - name: Harden MySQL config
+      lineinfile:
+        path: /etc/mysql/my.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 127.0.0.1'
+      notify:
+        - Restart MySQL
+
+handlers:
+  - name: Cleanup old backups
+    shell: "find {{ backup_dir }} -type f -mtime +{{ retention_days }} -delete"
+  - name: Restart MySQL
+    service:
+      name: mysql
+      state: restarted

@@ -1,0 +1,73 @@
+---
+- name: Jenkins Master Setup
+  hosts: cicd_masters
+  become: yes
+  vars:
+    jenkins_admin_user: admin
+    jenkins_admin_password: "{{ vault_jenkins_password }}"
+    jenkins_plugins:
+      - git
+      - pipeline
+      - blueocean
+      - credentials
+    jenkins_jobs:
+      - name: Build-App
+        repo: https://github.com/example/app.git
+        triggers: SCM
+      - name: Deploy-App
+        repo: https://github.com/example/app.git
+        triggers: Manual
+  pre_tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+  roles:
+    - jenkins
+    - plugins
+    - credentials
+  post_tasks:
+    - name: Create Jenkins jobs
+      jenkins_job:
+        name: "{{ item.name }}"
+        config: "{{ lookup('template', 'jobs/{{ item.name }}.xml.j2') }}"
+      loop: "{{ jenkins_jobs }}"
+
+- name: Jenkins Agent Setup
+  hosts: cicd_agents
+  become: yes
+  tasks:
+    - name: Install Java
+      apt:
+        name: openjdk-11-jdk
+        state: present
+        update_cache: yes
+    - name: Register agent with Jenkins master
+      shell: |
+        java -jar agent.jar -jnlpUrl http://{{ groups['cicd_masters'][0] }}:8080/computer/{{ inventory_hostname }}/slave-agent.jnlp -secret <secret> -workDir "/home/jenkins"
+      args:
+        creates: /home/jenkins/agent.jar
+
+- name: Backup Jenkins and Plugins
+  hosts: cicd_masters
+  become: yes
+  vars:
+    backup_dir: /var/backups/jenkins
+    retention_days: 5
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0750'
+    - name: Backup Jenkins home
+      archive:
+        path: /var/lib/jenkins
+        dest: "{{ backup_dir }}/jenkins-home-{{ ansible_date_time.date }}.tar.gz"
+      notify:
+        - Cleanup old Jenkins backups
+
+handlers:
+  - name: Cleanup old Jenkins backups
+    shell: "find {{ backup_dir }} -type f -mtime +{{ retention_days }} -delete"
